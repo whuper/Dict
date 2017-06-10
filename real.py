@@ -31,6 +31,15 @@ class WordFrame(wx.Frame):
         topLbl = wx.StaticText(self.panel, -1, "Words of KAOYAN")
         topLbl.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
 
+        #居中显示的单词
+        self.wordLabel = wx.StaticText(self.panel, -1, "abandon",(600, 60),(160,-1),wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+        #self.wordLabel = wx.StaticText(self.panel,-1,style = wx.ALIGN_CENTER)
+        self.wordLabel.SetFont(wx.Font(28, wx.SWISS, wx.NORMAL, wx.NORMAL))
+
+        #self.descLabel = wx.StaticText(self.panel, -1, "desc",(600, 60),(160,-1),wx.ALIGN_CENTER))
+        self.descLabel = wx.StaticText(self.panel,-1,style = wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+        self.descLabel.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.NORMAL))
+        #self.descLabel.SetLabel('test label')
         '''
         nameLbl = wx.StaticText(panel, -1, "Name:")
         name = wx.TextCtrl(panel, -1, "");
@@ -80,6 +89,10 @@ class WordFrame(wx.Frame):
         mainSizer.Add(listSizer, 0, wx.EXPAND|wx.BOTTOM, 10)
         #mainSizer.Add(self.list, 0, wx.EXPAND|wx.BOTTOM, 10)
 
+        mainSizer.Add(self.wordLabel, 0,wx.EXPAND|wx.BOTTOM, 10)
+        mainSizer.Add(self.descLabel, 0,wx.EXPAND|wx.BOTTOM, 10)
+
+
 
         # The buttons sizer will put them in a row with resizeable
         # gaps between and on either side of the buttons
@@ -122,10 +135,11 @@ class WordFrame(wx.Frame):
 
 
     def InitList(self):
-        self.list = wx.ListCtrl(self.panel, -1, style=wx.LC_REPORT,size=(800,480))
+        self.list = wx.ListCtrl(self.panel, -1, style=wx.LC_REPORT,size=(680,440))
            # Add some columns
-        for col, text in enumerate(['id','wordname','desc']):
+        for col, text in enumerate(['id','wordname','desc','sound']):
             self.list.InsertColumn(col, text)
+        self.list.SetTextColour('gray')
 
     def GetList(self):
     
@@ -154,9 +168,62 @@ class WordFrame(wx.Frame):
             index = self.list.InsertStringItem(sys.maxint, str(item[0]))
             for col, text in enumerate(item[1:]):
                 self.list.SetStringItem(index, col+1, text)
+            self.list.SetStringItem(index,3,'speak')
+
+        # set the width of the columns in various ways
+        self.list.SetColumnWidth(0, 120)
+        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.list.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+        self.list.SetColumnWidth(3, wx.LIST_AUTOSIZE_USEHEADER)
+
+        # bind some interesting events
+        #self.Bind(wx.EVT_LIST_ITEM_SelectED, self.OnItemSelected, self.list)
+        #self.Bind(wx.EVT_LIST_ITEM_DESelectED, self.OnItemDeselected, self.list)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated, self.list)
+        
+    def OnItemSelected(self, evt):
+        item = evt.GetItem()
+        #print "Item selected:", item.GetText()
+        
+    def OnItemDeselected(self, evt):
+        item = evt.GetItem()
+        #print "Item deselected:", item.GetText()
+    def OnItemActivated(self, evt): 
+        item = evt.GetItem()
+        #print "Item activated:", item.GetText()
+        #print 'item ', item
+        print 'evt Index', evt.GetIndex()
+        #根据id大小来放进相应的文件夹
+        word_id = int(item.GetText())
+        folder_size = 500
+
+        folder_name = 'within_' + str( ( int( (word_id - 1) / folder_size) + 1) * folder_size )
+
+        save_path = 'iciba/audio/' + folder_name
+        word = 'abandon'
+        li_index = evt.GetIndex()
+        word_real = self.list.GetItem(li_index,1).Text
+        word_real = word_real.strip()
+
+        desc = self.list.GetItem(li_index,2).Text
+
+        #设置单词和描述标签
+        self.wordLabel.SetLabel(word_real)
+        self.descLabel.SetLabel(desc)
+
+        #print 'word', word_real
+        mp3_path = save_path + '/' + word_real  + '.mp3'
+        print mp3_path
+
+        self.sound = wx.Sound(mp3_path)
+        # error handling ...
+        if self.sound.IsOk():
+            self.sound.Play(wx.SOUND_ASYNC)
+            self.sound.Play(wx.SOUND_ASYNC)
+        else:
+            wx.MessageBox("Missing or invalid sound file", "Error")
 
 
 app = wx.PySimpleApp()
 WordFrame().Show()
 app.MainLoop()
-
