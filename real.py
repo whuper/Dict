@@ -52,10 +52,11 @@ class WordFrame(wx.Frame):
         
         #搜索展示部分
         #search = wx.StaticText(self.panel, -1, "search:")
-        self.searchCtrl = wx.TextCtrl(self.panel, -1, "",size=(205, -1))
+        self.searchCtrl = wx.TextCtrl(self.panel, -1, "",size=(205, -1),style=wx.TE_PROCESS_ENTER)
 
         searchBtn = wx.Button(self.panel, -1, "search")
-        self.Bind(wx.EVT_BUTTON, self.Search,searchBtn)
+        #给按钮绑定搜索事件
+        searchBtn.Bind(wx.EVT_BUTTON, self.Search)
         
         
 
@@ -167,10 +168,14 @@ class WordFrame(wx.Frame):
 
     def Clear(self, event):       
         self.list.DeleteAllItems()     
-    def Search(self,event):
+    #按钮搜索
+    def BtnSearch(self,event):
         searchStr = self.searchCtrl.GetValue()
+        self.Search(searchStr) 
 
-        if (searchStr and searchStr.strip()):
+        #print event.GetString()
+    def Search(self,searchStr):
+         if (searchStr and searchStr.strip()):
             conn = sqlite3.connect('wenhaotest.db')
             cursor = conn.cursor()
             result = cursor.execute("SELECT id,wordname,desc from english where wordname = '"+ searchStr.strip() + "'")
@@ -185,8 +190,6 @@ class WordFrame(wx.Frame):
 
                 self.SetInfoLabel(wordRecord[1],wordRecord[2])
 
-
-        #print event.GetString()
     def PreSpeak(self,event):
             if hasattr(self,'WordId'):
                 self.Speak(self.WordId,self.WordReal)
@@ -210,7 +213,8 @@ class WordFrame(wx.Frame):
 
 
     def OnEnterTyped(self,event):
-        print event.GetString()
+        searchStr = event.GetString()
+        self.Search(searchStr)
     def GoNext(self, event):
         self.page_num += 1
         self.list.DeleteAllItems()
@@ -307,6 +311,6 @@ class WordFrame(wx.Frame):
 
 
 
-app = wx.PySimpleApp()
+app = wx.App()
 WordFrame().Show()
 app.MainLoop()
