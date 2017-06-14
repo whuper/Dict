@@ -25,7 +25,7 @@ class ComboBoxFrame(wx.Frame):
 
         #定义普通样式的comboBox, 接受键盘输入，但不会改变Item
         commonLable = wx.StaticText(panel, -1, "normal")
-        commonComboBox = wx.ComboBox(panel, -1, value = "zero", choices = sampleList, style = wx.CB_DROPDOWN)
+        commonComboBox = wx.ComboBox(panel, -1,  pos=(50, 170), size=(150, -1),value = "zero", choices = sampleList, style = wx.CB_DROPDOWN)
 
         #定义简单样式的ComboBox，
         simpleLable = wx.StaticText(panel, -1, "simple:")

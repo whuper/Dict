@@ -1,0 +1,15 @@
+   #´´½¨²Ëµ¥
+
+        menu = wx.Menu()
+        simple = menu.Append(-1, "Simple menu item")
+        menu.AppendSeparator()
+        exit = menu.Append(-1, "Exit")
+
+        self.Bind(wx.EVT_MENU, self.OnSimple, simple)
+        self.Bind(wx.EVT_MENU, self.OnExit, exit)
+
+        
+
+        menuBar = wx.MenuBar()
+        menuBar.Append(menu, "Simple Menu")
+        self.SetMenuBar(menuBar)

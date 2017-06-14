@@ -2,9 +2,13 @@
 # -*- coding: UTF-8 -*-
 import wx
 import sys,random
+import string
 import sqlite3
 import data
 import platform
+from autocomplete import AutocompleteTextCtrl
+
+template = "%s<b><u>%s</b></u>%s"
 
 class WordFrame(wx.Frame):
     def __init__(self):
@@ -20,30 +24,14 @@ class WordFrame(wx.Frame):
 
         #wx.Frame.__init__(self, None, -1, "Real World dict",size=(800,780))
         wx.Frame.__init__(self, None, -1, "Real World dict")
-        self.panel = wx.Panel(self)
+        self.panel = wx.Panel(self,-1)
         #self.panel.SetBackgroundColour('Green')
         #self.panel.Refresh()
 
         self.panel.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)  
-        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
-        #return
-
-          #创建菜单
-
-        menu = wx.Menu()
-        simple = menu.Append(-1, "Simple menu item")
-        menu.AppendSeparator()
-        exit = menu.Append(-1, "Exit")
-
-        self.Bind(wx.EVT_MENU, self.OnSimple, simple)
-        self.Bind(wx.EVT_MENU, self.OnExit, exit)
-
-        
-
-        menuBar = wx.MenuBar()
-        menuBar.Append(menu, "Simple Menu")
-        self.SetMenuBar(menuBar)
-
+        self.panel.Bind(wx.EVT_CHAR, self.OnKeyDown)  
+        #self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+       
         #top 
         topSizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -51,15 +39,13 @@ class WordFrame(wx.Frame):
         topTitle.SetFont(wx.Font(18, wx.SWISS, wx.NORMAL, wx.BOLD))
         
         #搜索展示部分
-        #search = wx.StaticText(self.panel, -1, "search:")
-        self.searchCtrl = wx.TextCtrl(self.panel, -1, "",size=(205, -1),style=wx.TE_PROCESS_ENTER)
+        #self.searchCtrl = wx.TextCtrl(self.panel, -1, "",size=(205, -1),style=wx.TE_PROCESS_ENTER)
+        self.searchCtrl = AutocompleteTextCtrl(self.panel,completer = self.random_list_generator)
 
         searchBtn = wx.Button(self.panel, -1, "search")
         #给按钮绑定搜索事件
-        searchBtn.Bind(wx.EVT_BUTTON, self.Search)
-        
-        
-
+        searchBtn.Bind(wx.EVT_BUTTON, self.BtnSearch)
+       
         topSizer.Add(topTitle)
         topSizer.Add((20,20), 1)
         topSizer.Add(self.searchCtrl)
@@ -99,45 +85,20 @@ class WordFrame(wx.Frame):
         mainSizer.Add(topSizer, 0, wx.EXPAND, 10)
         #mainSizer.Add(topLbl, 0, wx.ALL, 5)
 
-        self.Bind(wx.EVT_KEY_DOWN,self.OnKeyDown)
-
         #加一条分割线
         mainSizer.Add(wx.StaticLine(self.panel), 0,
                 wx.EXPAND|wx.TOP|wx.BOTTOM, 5)
-
-        '''
-        # addrSizer is a grid that holds all of the address info
-        addrSizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=5)
-
-        addrSizer.AddGrowableCol(1)
-
-        addrSizer.Add(nameLbl, 0,
-                wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        addrSizer.Add(name, 0, wx.EXPAND)
-
-      
-
-        # now add the addrSizer to the mainSizer
-        mainSizer.Add(addrSizer, 0, wx.EXPAND|wx.ALL, 10)
-        
-        '''
-
 
         self.InitList()
         self.GetWordList()
         listSizer = wx.BoxSizer(wx.HORIZONTAL)
         listSizer.Add(self.list)
 
-
         mainSizer.Add(listSizer, 0, wx.EXPAND|wx.BOTTOM, 10)
         #mainSizer.Add(self.list, 0, wx.EXPAND|wx.BOTTOM, 10)
 
-        
-
         mainSizer.Add(self.wordLabel, 0,wx.EXPAND|wx.BOTTOM, 10)
         mainSizer.Add(self.descLabel, 0,wx.EXPAND|wx.BOTTOM, 10)
-
-
 
         # The buttons sizer will put them in a row with resizeable
         # gaps between and on either side of the buttons
@@ -158,7 +119,6 @@ class WordFrame(wx.Frame):
         # frame from getting smaller than this size.
         mainSizer.Fit(self)
         #mainSizer.SetSizeHints(self)
-
     def OnSimple(self, event):
         wx.MessageBox("You selected the simple menu item")
 
@@ -171,25 +131,22 @@ class WordFrame(wx.Frame):
     #按钮搜索
     def BtnSearch(self,event):
         searchStr = self.searchCtrl.GetValue()
-        self.Search(searchStr) 
+        if(searchStr and len(searchStr.strip()) > 0):
+            #调用搜索
+            listResult = self.Search(searchStr) 
+            if len(listResult) > 0:
+                wordRecord = listResult[0]
+                self.SetInfoLabel(wordRecord)
 
-        #print event.GetString()
     def Search(self,searchStr):
-         if (searchStr and searchStr.strip()):
-            conn = sqlite3.connect('wenhaotest.db')
-            cursor = conn.cursor()
-            result = cursor.execute("SELECT id,wordname,desc from english where wordname = '"+ searchStr.strip() + "'")
-            wordRecord = result.fetchall()
-            conn.close()
-            
-            if wordRecord[0] and wordRecord[0][0]:
-                wordRecord = wordRecord[0]
-
-                self.WordId = wordRecord[0]
-                self.WordReal = wordRecord[1]
-
-                self.SetInfoLabel(wordRecord[1],wordRecord[2])
-
+        #if (searchStr and searchStr.strip()):
+        searchStr = searchStr.lower()
+        conn = sqlite3.connect('wenhaotest.db')
+        cursor = conn.cursor()
+        result = cursor.execute("SELECT id,wordname,desc from english where wordname = '"+ searchStr.strip() + "'")
+        resultList = result.fetchall()
+        conn.close()
+        return resultList
     def PreSpeak(self,event):
             if hasattr(self,'WordId'):
                 self.Speak(self.WordId,self.WordReal)
@@ -214,7 +171,12 @@ class WordFrame(wx.Frame):
 
     def OnEnterTyped(self,event):
         searchStr = event.GetString()
-        self.Search(searchStr)
+        #self.Search(searchStr)
+        #调用搜索
+        listResult = self.Search(searchStr) 
+        if len(listResult) > 0:
+            wordRecord = listResult[0]
+            self.SetInfoLabel(wordRecord)
     def GoNext(self, event):
         self.page_num += 1
         self.list.DeleteAllItems()
@@ -274,7 +236,7 @@ class WordFrame(wx.Frame):
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated, self.list)
 
     def OnKeyDown(self, event):
-        print 'dasdsa'
+        print 'OnKeyDown'
         #按键时相应代码  
         kc = event.GetKeyCode()
         print kc
@@ -285,10 +247,14 @@ class WordFrame(wx.Frame):
     def OnItemDeselected(self, evt):
         item = evt.GetItem()
         #print "Item deselected:", item.GetText()
-    def SetInfoLabel(self,word_real,desc):
-         #设置单词和描述标签
-        self.wordLabel.SetLabel(word_real)
-        self.descLabel.SetLabel(desc)
+    def SetInfoLabel(self,wordRecord):
+        if wordRecord[0] and wordRecord[1]:
+            #把单词id和单词保存到全局
+            self.WordId = wordRecord[0]
+            self.WordReal = wordRecord[1]
+            #设置单词和描述标签
+            self.wordLabel.SetLabel(wordRecord[1])
+            self.descLabel.SetLabel(wordRecord[2])
     def OnItemActivated(self, evt): 
         item = evt.GetItem()
         #print "Item activated:", item.GetText()
@@ -305,12 +271,38 @@ class WordFrame(wx.Frame):
         self.WordId = word_id
         self.WordReal = word_real
 
-        self.SetInfoLabel(word_real,desc)
-
+        #self.SetInfoLabel(word_real,desc)
+        self.SetInfoLabel([word_id,word_real,desc])
         self.Speak(word_id,word_real)
 
+    def random_list_generator(self,query):
+        formatted, unformatted = list(), list()
+        if query:
+            query = query.strip().lower()
+            print query
+            
+            conn = sqlite3.connect('wenhaotest.db')
+            cursor = conn.cursor()
+            result = cursor.execute("SELECT wordname from english where wordname like '%"+ query.strip() + "%' limit 20")
+            resultList = result.fetchall()
+            conn.close()
+            '''
+            for i in xrange(random.randint(0, 30)):
+                prefix = "".join(random.sample(string.letters, random.randint(0, 10)))
+                postfix = "".join(random.sample(string.letters, random.randint(0, 10)))
+                value = (prefix, query, postfix)
+                '''
+            for row in resultList:
+                word = row[0]
+                #wordSp = word.split(query)
+                #wordSp = [item for item in filter(lambda x:x != '', wordSp)]
+                #print wordSp
+                #formatted.append(template % wordSp)
+                #unformatted.append("".join(row[0]))
+                unformatted.append(word)
 
-
+            return unformatted,unformatted
+  
 app = wx.App()
 WordFrame().Show()
 app.MainLoop()
