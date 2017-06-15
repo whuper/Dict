@@ -6,6 +6,7 @@ import string
 import sqlite3
 import data
 import platform
+import time
 from autocomplete import AutocompleteTextCtrl
 
 template = "%s<b><u>%s</b></u>%s"
@@ -173,6 +174,7 @@ class WordFrame(wx.Frame):
         searchStr = event.GetString()
         #self.Search(searchStr)
         #调用搜索
+        print 'sstr',searchStr
         listResult = self.Search(searchStr) 
         if len(listResult) > 0:
             wordRecord = listResult[0]
@@ -253,7 +255,14 @@ class WordFrame(wx.Frame):
             self.WordId = wordRecord[0]
             self.WordReal = wordRecord[1]
             #设置单词和描述标签
-            self.wordLabel.SetLabel(wordRecord[1])
+            '''
+            wordTemp = ''
+            for i in range(len(wordRecord[1])):  
+                #time.sleep(0.1)  
+                wordTemp += wordRecord[1][i]
+                self.wordLabel.SetLabel(wordTemp)
+            '''
+            self.wordLabel.SetLabel((wordRecord[1])
             self.descLabel.SetLabel(wordRecord[2])
     def OnItemActivated(self, evt): 
         item = evt.GetItem()
@@ -277,10 +286,10 @@ class WordFrame(wx.Frame):
 
     def random_list_generator(self,query):
         formatted, unformatted = list(), list()
+        wx.Sleep(0.8)
         if query:
-            query = query.strip().lower()
             print query
-            
+            query = query.strip().lower()
             conn = sqlite3.connect('wenhaotest.db')
             cursor = conn.cursor()
             result = cursor.execute("SELECT wordname from english where wordname like '%"+ query.strip() + "%' limit 20")

@@ -33,7 +33,8 @@ class SuggestionsPopup(wx.Frame):
     def __init__(self, parent):
         wx.Frame.__init__(
             self, parent,
-            style=wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT|wx.STAY_ON_TOP
+            style=wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT|wx.STAY_ON_TOP,
+            size=(225,-1)
         )
         self._suggestions = self._listbox(self)
         self._suggestions.SetItemCount(0)
@@ -90,7 +91,7 @@ class AutocompleteTextCtrl(wx.TextCtrl):
         style = wx.TE_PROCESS_ENTER
         if multiline:
             style = style | wx.TE_MULTILINE
-        wx.TextCtrl.__init__(self, parent, style=style)
+        wx.TextCtrl.__init__(self, parent,size=(225, 30),style=style)
         self.height = height
         self.frequency = frequency
         if completer:
