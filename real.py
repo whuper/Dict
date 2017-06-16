@@ -6,7 +6,8 @@ import string
 import sqlite3
 import data
 import platform
-import time
+#import time
+import threading
 from autocomplete import AutocompleteTextCtrl
 
 template = "%s<b><u>%s</b></u>%s"
@@ -41,7 +42,7 @@ class WordFrame(wx.Frame):
         
         #搜索展示部分
         #self.searchCtrl = wx.TextCtrl(self.panel, -1, "",size=(205, -1),style=wx.TE_PROCESS_ENTER)
-        self.searchCtrl = AutocompleteTextCtrl(self.panel,completer = self.random_list_generator)
+        self.searchCtrl = AutocompleteTextCtrl(self.panel,completer = self.result_generator,frequency=1000)
 
         searchBtn = wx.Button(self.panel, -1, "search")
         #给按钮绑定搜索事件
@@ -66,8 +67,8 @@ class WordFrame(wx.Frame):
         self.descLabel.SetFont(wx.Font(16, wx.SWISS, wx.NORMAL, wx.NORMAL))
         #self.descLabel.SetLabel('test label')
 
-        prevBtn = wx.Button(self.panel, -1, "Prev")
-        nextBtn = wx.Button(self.panel, -1, "Next")
+        prevBtn = wx.Button(self.panel, -1, "Prev Page")
+        nextBtn = wx.Button(self.panel, -1, "Next Page")
 
         clearBtn = wx.Button(self.panel, -1, "Clear")
         speakBtn = wx.Button(self.panel, -1, "Speak")
@@ -105,11 +106,11 @@ class WordFrame(wx.Frame):
         # gaps between and on either side of the buttons
         btnSizer = wx.BoxSizer(wx.HORIZONTAL)
         btnSizer.Add(prevBtn)
-        btnSizer.Add(clearBtn)
+        btnSizer.Add(nextBtn)
         #添加一个空格...
         btnSizer.Add((20,20), 1)
         btnSizer.Add(speakBtn)
-        btnSizer.Add(nextBtn)
+        btnSizer.Add(clearBtn)
 
         mainSizer.Add(btnSizer, 0, wx.EXPAND|wx.BOTTOM, 10)
 
@@ -249,6 +250,22 @@ class WordFrame(wx.Frame):
     def OnItemDeselected(self, evt):
         item = evt.GetItem()
         #print "Item deselected:", item.GetText()
+    def SpellWord(self):
+        if not self.WordReal:
+            return
+
+        if self.LetterNo >= len(self.WordReal):
+            self.timer.cancel()
+            return
+
+        self.LetterTemp += self.WordReal[self.LetterNo]
+        self.wordLabel.SetLabel(self.LetterTemp)
+
+        self.timer = threading.Timer(0.2,self.SpellWord)
+        self.timer.start()
+        self.LetterNo += 1
+        
+
     def SetInfoLabel(self,wordRecord):
         if wordRecord[0] and wordRecord[1]:
             #把单词id和单词保存到全局
@@ -262,14 +279,20 @@ class WordFrame(wx.Frame):
                 wordTemp += wordRecord[1][i]
                 self.wordLabel.SetLabel(wordTemp)
             '''
-            self.wordLabel.SetLabel((wordRecord[1])
+            self.LetterNo = 0
+            self.LetterTemp = ''
+            self.timer = threading.Timer(1,self.SpellWord)
+            
+            self.timer.start()
+
+            self.wordLabel.SetLabel(wordRecord[1])
             self.descLabel.SetLabel(wordRecord[2])
     def OnItemActivated(self, evt): 
         item = evt.GetItem()
         #print "Item activated:", item.GetText()
         #print 'item ', item
         print 'evt Index', evt.GetIndex()
-        #根据id大小来放进相应的文件夹
+        #根据id大小来识别相应的文件夹
         word_id = int(item.GetText())
         li_index = evt.GetIndex()
         word_real = self.list.GetItem(li_index,1).Text
@@ -284,9 +307,9 @@ class WordFrame(wx.Frame):
         self.SetInfoLabel([word_id,word_real,desc])
         self.Speak(word_id,word_real)
 
-    def random_list_generator(self,query):
+    def result_generator(self,query):
         formatted, unformatted = list(), list()
-        wx.Sleep(0.8)
+        #wx.Sleep(0.8)
         if query:
             print query
             query = query.strip().lower()
